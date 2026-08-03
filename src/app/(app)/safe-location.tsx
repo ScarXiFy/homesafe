@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
@@ -8,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useSafeLocation } from '@/hooks/use-safe-location';
+import { GEOFENCE_RADIUS_METERS, isHomeGeofenceRegistered } from '@/tasks/geofence-task';
 
 export default function SafeLocationScreen() {
   const router = useRouter();
@@ -20,6 +22,17 @@ export default function SafeLocationScreen() {
     error,
     saveCurrentLocation,
   } = useSafeLocation();
+
+  const [isGeofenceActive, setIsGeofenceActive] = useState<boolean>(false);
+
+  const checkGeofence = useCallback(async () => {
+    const active = await isHomeGeofenceRegistered();
+    setIsGeofenceActive(active);
+  }, []);
+
+  useEffect(() => {
+    checkGeofence();
+  }, [safeLocation, checkGeofence]);
 
   return (
     <ThemedView style={styles.container}>
@@ -54,6 +67,21 @@ export default function SafeLocationScreen() {
                 </ThemedText>
               </View>
             ) : null}
+
+            <View style={[styles.geofenceStatusBox, { backgroundColor: isGeofenceActive ? '#E8F5E9' : theme.backgroundElement, borderColor: isGeofenceActive ? '#4CAF50' : theme.backgroundSelected }]}>
+              <ThemedText style={{ color: isGeofenceActive ? '#2E7D32' : theme.textSecondary, fontWeight: '600' }}>
+                Arrival detection: {isGeofenceActive ? 'Active' : 'Not active'}
+              </ThemedText>
+              {isGeofenceActive ? (
+                <ThemedText type="small" style={{ color: '#2E7D32', marginTop: Spacing.half }}>
+                  Geofence set ({GEOFENCE_RADIUS_METERS}m radius around Home)
+                </ThemedText>
+              ) : (
+                <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: Spacing.half }}>
+                  {safeLocation ? 'Requires "Always Allow" location permission' : 'Save home location to activate'}
+                </ThemedText>
+              )}
+            </View>
 
             {safeLocation ? (
               <View style={styles.mapContainer}>
@@ -95,7 +123,10 @@ export default function SafeLocationScreen() {
                     { backgroundColor: theme.backgroundElement },
                     pressed && !isSaving && { opacity: 0.7 },
                   ]}
-                  onPress={saveCurrentLocation}
+                  onPress={async () => {
+                    await saveCurrentLocation();
+                    await checkGeofence();
+                  }}
                   disabled={isSaving}
                 >
                   {isSaving ? (
@@ -119,7 +150,10 @@ export default function SafeLocationScreen() {
                     { backgroundColor: isSaving ? theme.backgroundSelected : theme.text },
                     pressed && !isSaving && { opacity: 0.8 },
                   ]}
-                  onPress={saveCurrentLocation}
+                  onPress={async () => {
+                    await saveCurrentLocation();
+                    await checkGeofence();
+                  }}
                   disabled={isSaving}
                 >
                   {isSaving ? (
@@ -176,6 +210,11 @@ const styles = StyleSheet.create({
   errorBox: {
     padding: Spacing.two,
     borderRadius: Spacing.one,
+  },
+  geofenceStatusBox: {
+    padding: Spacing.three,
+    borderRadius: Spacing.two,
+    borderWidth: 1,
   },
   mapContainer: {
     gap: Spacing.three,

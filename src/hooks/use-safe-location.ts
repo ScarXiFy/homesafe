@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
 import {
   getFirestore,
@@ -8,6 +8,7 @@ import {
   serverTimestamp,
 } from '@react-native-firebase/firestore';
 import { useAuthStore } from '@/store/authStore';
+import { isHomeGeofenceRegistered, registerHomeGeofence } from '@/tasks/geofence-task';
 
 export interface SafeLocation {
   latitude: number;
@@ -31,10 +32,34 @@ export function useSafeLocation(): UseSafeLocationResult {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  const startupGeofenceChecked = useRef<boolean>(false);
+
+  // Case 2: On app startup, check if safeLocation exists in Firestore and no geofence is currently active
+  const checkStartupGeofence = useCallback(async (loc: SafeLocation) => {
+    if (startupGeofenceChecked.current) return;
+    startupGeofenceChecked.current = true;
+
+    try {
+      const isAlreadyActive = await isHomeGeofenceRegistered();
+      if (!isAlreadyActive) {
+        const bgPerm = await Location.getBackgroundPermissionsAsync();
+        if (bgPerm.granted) {
+          await registerHomeGeofence({
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check or register startup geofence:', err);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) {
       setSafeLocation(null);
       setIsLoading(false);
+      startupGeofenceChecked.current = false;
       return;
     }
 
@@ -48,7 +73,9 @@ export function useSafeLocation(): UseSafeLocationResult {
         if (snapshot.exists()) {
           const data = snapshot.data();
           if (data && data.safeLocation) {
-            setSafeLocation(data.safeLocation as SafeLocation);
+            const loc = data.safeLocation as SafeLocation;
+            setSafeLocation(loc);
+            checkStartupGeofence(loc);
           } else {
             setSafeLocation(null);
           }
@@ -65,8 +92,9 @@ export function useSafeLocation(): UseSafeLocationResult {
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, checkStartupGeofence]);
 
+  // Case 1: Once, right after user explicitly saves or updates location
   const saveCurrentLocation = useCallback(async (): Promise<void> => {
     if (!user) {
       setError('User is not authenticated.');
@@ -101,6 +129,14 @@ export function useSafeLocation(): UseSafeLocationResult {
       );
 
       setSafeLocation(newSafeLocation);
+
+      const bgPerm = await Location.getBackgroundPermissionsAsync();
+      if (bgPerm.granted) {
+        await registerHomeGeofence({
+          latitude: newSafeLocation.latitude,
+          longitude: newSafeLocation.longitude,
+        });
+      }
     } catch (err: any) {
       console.error('Error saving current location:', err);
       setError(err.message || 'Failed to save current location. Please try again.');
