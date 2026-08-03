@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { AnimatedIcon } from '@/components/animated-icon';
 import { ThemedText } from '@/components/themed-text';
@@ -10,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useLocationPermission } from '@/hooks/use-location-permission';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
   const authLoading = useAuthStore((state) => state.isLoading);
@@ -164,6 +166,19 @@ export default function HomeScreen() {
             {renderPermissionStatus()}
             {renderPermissionButtons()}
           </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              { backgroundColor: theme.backgroundElement, marginTop: Spacing.one },
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => router.push('/safe-location')}
+          >
+            <ThemedText type="default" style={{ color: theme.text, fontWeight: '600' }}>
+              Manage Safe Location
+            </ThemedText>
+          </Pressable>
 
           <Pressable
             style={({ pressed }) => [
