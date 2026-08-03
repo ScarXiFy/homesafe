@@ -12,7 +12,13 @@
       "bundleIdentifier": "com.scarxifyy.homesafe",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "HomeSafe needs your location to detect when you arrive at safe locations.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "HomeSafe uses your location in the background to automatically notify your family member when you arrive safely.",
+        "NSLocationAlwaysUsageDescription": "HomeSafe uses your background location to automatically detect when you arrive at a safe location.",
+        "UIBackgroundModes": [
+          "location"
+        ]
       }
     },
     "android": {
@@ -37,6 +43,15 @@
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "HomeSafe needs your location to detect when you arrive at safe locations.",
+          "locationAlwaysAndWhenInUsePermission": "HomeSafe uses your location in the background to automatically notify your family member when you arrive safely.",
+          "locationAlwaysPermission": "HomeSafe uses your background location to automatically detect when you arrive at a safe location.",
+          "isBackgroundEnabled": true
         }
       ],
       "@react-native-firebase/app",
