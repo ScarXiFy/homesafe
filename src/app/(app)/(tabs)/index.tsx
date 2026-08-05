@@ -182,6 +182,19 @@ export default function HomeScreen() {
 
           <Pressable
             style={({ pressed }) => [
+              styles.actionButton,
+              { backgroundColor: theme.backgroundElement, marginTop: Spacing.one },
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={() => router.push('/family-link')}
+          >
+            <ThemedText type="default" style={{ color: theme.text, fontWeight: '600' }}>
+              Link Family Member
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
               styles.signOutButton,
               { backgroundColor: theme.backgroundElement },
               pressed && { opacity: 0.7 },
