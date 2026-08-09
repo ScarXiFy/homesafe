@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
-import { Map as MapLibreMap, Camera as MapLibreCamera, Marker as MapLibreMarker } from '@maplibre/maplibre-react-native';
 import { useRouter } from 'expo-router';
 
+import { SafeLocationMap } from '@/components/safe-location-map';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
@@ -91,52 +90,11 @@ export default function SafeLocationScreen() {
                 </ThemedText>
 
                 <View style={[styles.mapWrapper, { borderColor: theme.backgroundSelected }]}>
-                  {Platform.OS === 'ios' ? (
-                    <MapView
-                      style={styles.map}
-                      region={{
-                        latitude: safeLocation.latitude,
-                        longitude: safeLocation.longitude,
-                        latitudeDelta: 0.005,
-                        longitudeDelta: 0.005,
-                      }}
-                      scrollEnabled={false}
-                      zoomEnabled={false}
-                      rotateEnabled={false}
-                      pitchEnabled={false}
-                    >
-                      <Marker
-                        coordinate={{
-                          latitude: safeLocation.latitude,
-                          longitude: safeLocation.longitude,
-                        }}
-                        title="Safe Location"
-                      />
-                    </MapView>
-                  ) : (
-                    <MapLibreMap
-                      style={styles.map}
-                      mapStyle="https://tiles.openfreemap.org/styles/liberty"
-                      dragPan={false}
-                      touchZoom={false}
-                      doubleTapZoom={false}
-                      doubleTapHoldZoom={false}
-                      touchRotate={false}
-                      touchPitch={false}
-                      attribution={false}
-                      logo={false}
-                    >
-                      <MapLibreCamera
-                        initialViewState={{
-                          center: [safeLocation.longitude, safeLocation.latitude],
-                          zoom: 15,
-                        }}
-                      />
-                      <MapLibreMarker lngLat={[safeLocation.longitude, safeLocation.latitude]}>
-                        <View style={styles.mapPin} />
-                      </MapLibreMarker>
-                    </MapLibreMap>
-                  )}
+                  <SafeLocationMap
+                    latitude={safeLocation.latitude}
+                    longitude={safeLocation.longitude}
+                    style={styles.map}
+                  />
                 </View>
 
                 <ThemedText type="small" style={{ color: theme.textSecondary, textAlign: 'center' }}>
@@ -257,14 +215,6 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
-  },
-  mapPin: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#208AEF',
-    borderColor: '#FFFFFF',
-    borderWidth: 3,
   },
   emptyContainer: {
     flex: 1,
