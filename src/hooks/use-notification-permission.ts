@@ -6,6 +6,8 @@ import {
   hasPermission,
   getToken,
   onTokenRefresh,
+  registerDeviceForRemoteMessages,
+  isDeviceRegisteredForRemoteMessages,
   AuthorizationStatus,
 } from '@react-native-firebase/messaging';
 import { getFirestore, doc, setDoc } from '@react-native-firebase/firestore';
@@ -49,6 +51,24 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
       console.error('Failed to save FCM token to Firestore:', err);
     }
   }, []);
+
+  const fetchAndSaveFcmToken = useCallback(
+    async (messagingInstance: any, uid: string) => {
+      try {
+        if (!isDeviceRegisteredForRemoteMessages(messagingInstance)) {
+          await registerDeviceForRemoteMessages(messagingInstance);
+        }
+        const token = await getToken(messagingInstance);
+        if (token) {
+          setFcmToken(token);
+          await saveTokenToFirestore(token, uid);
+        }
+      } catch (tokenErr) {
+        console.warn('FCM token registration/retrieval warning:', tokenErr);
+      }
+    },
+    [saveTokenToFirestore]
+  );
 
   const checkNotificationPermission = useCallback(async (): Promise<NotificationPermissionStatus> => {
     setIsLoading(true);
@@ -125,14 +145,8 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
 
       if (isGranted) {
         setStatus('granted');
-        try {
-          const token = await getToken(messaging);
-          setFcmToken(token);
-          if (user?.uid) {
-            await saveTokenToFirestore(token, user.uid);
-          }
-        } catch (tokenErr) {
-          console.error('Error retrieving FCM token after permission grant:', tokenErr);
+        if (user?.uid) {
+          await fetchAndSaveFcmToken(messaging, user.uid);
         }
         setIsLoading(false);
         return 'granted';
@@ -149,7 +163,7 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
       setIsLoading(false);
       return 'denied';
     }
-  }, [user?.uid, saveTokenToFirestore]);
+  }, [user?.uid, fetchAndSaveFcmToken]);
 
   const openSettings = useCallback(async (): Promise<void> => {
     try {
@@ -167,16 +181,7 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
 
     const messaging = getMessaging();
 
-    getToken(messaging)
-      .then((token: string) => {
-        if (token) {
-          setFcmToken(token);
-          saveTokenToFirestore(token, user.uid);
-        }
-      })
-      .catch((err: any) => {
-        console.error('Error fetching FCM token in effect:', err);
-      });
+    fetchAndSaveFcmToken(messaging, user.uid);
 
     const unsubscribe = onTokenRefresh(messaging, async (newToken: string) => {
       setFcmToken(newToken);
@@ -188,7 +193,7 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
     return () => {
       unsubscribe();
     };
-  }, [user?.uid, status, saveTokenToFirestore]);
+  }, [user?.uid, status, fetchAndSaveFcmToken, saveTokenToFirestore]);
 
   // Initial check on mount
   useEffect(() => {
