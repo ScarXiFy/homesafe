@@ -50,7 +50,9 @@
           "locationWhenInUsePermission": "HomeSafe needs your location to detect when you arrive at safe locations.",
           "locationAlwaysAndWhenInUsePermission": "HomeSafe uses your location in the background to automatically notify your family member when you arrive safely.",
           "locationAlwaysPermission": "HomeSafe uses your background location to automatically detect when you arrive at a safe location.",
-          "isBackgroundEnabled": true
+          "isBackgroundEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       "react-native-maps",

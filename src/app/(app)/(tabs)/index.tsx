@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
@@ -9,6 +9,7 @@ import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/use-theme';
 import { useLocationPermission } from '@/hooks/use-location-permission';
+import { useNotificationPermission } from '@/hooks/use-notification-permission';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -23,6 +24,14 @@ export default function HomeScreen() {
     requestPermissions,
     openSettings,
   } = useLocationPermission();
+
+  const {
+    status: notifStatus,
+    isLoading: notifLoading,
+    errorMessage: notifErrorMessage,
+    requestNotificationPermission,
+    openSettings: openNotifSettings,
+  } = useNotificationPermission();
 
   const renderPermissionStatus = () => {
     switch (permStatus) {
@@ -147,66 +156,166 @@ export default function HomeScreen() {
     return null;
   };
 
+  const renderNotificationStatus = () => {
+    if (notifLoading) {
+      return (
+        <View style={[styles.statusBox, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
+          <ActivityIndicator color={theme.text} />
+        </View>
+      );
+    }
+
+    switch (notifStatus) {
+      case 'granted':
+        return (
+          <View style={[styles.statusBox, { backgroundColor: '#E8F5E9', borderColor: '#4CAF50' }]}>
+            <ThemedText style={{ color: '#2E7D32', fontWeight: '600' }}>
+              Status: Notifications Enabled
+            </ThemedText>
+            <ThemedText type="small" style={{ color: '#2E7D32', marginTop: Spacing.half }}>
+              Push notifications are active for arrival alerts.
+            </ThemedText>
+          </View>
+        );
+      case 'denied':
+        return (
+          <View style={[styles.statusBox, { backgroundColor: '#FFEBEE', borderColor: '#EF5350' }]}>
+            <ThemedText style={{ color: '#C62828', fontWeight: '600' }}>
+              Status: Permission Denied
+            </ThemedText>
+            <ThemedText type="small" style={{ color: '#C62828', marginTop: Spacing.half }}>
+              {notifErrorMessage || "Arrival notifications won't work without this permission."}
+            </ThemedText>
+          </View>
+        );
+      case 'undetermined':
+      default:
+        return (
+          <View style={[styles.statusBox, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
+            <ThemedText style={{ color: theme.text, fontWeight: '600' }}>
+              Status: Not Requested
+            </ThemedText>
+            <ThemedText type="small" style={{ color: theme.textSecondary, marginTop: Spacing.half }}>
+              Notification permission is needed to receive arrival alerts from family members.
+            </ThemedText>
+          </View>
+        );
+    }
+  };
+
+  const renderNotificationButtons = () => {
+    if (notifLoading) return null;
+
+    if (notifStatus === 'undetermined') {
+      return (
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            { backgroundColor: theme.text },
+            pressed && { opacity: 0.8 },
+          ]}
+          onPress={requestNotificationPermission}
+        >
+          <ThemedText type="default" style={{ color: theme.background, fontWeight: '600' }}>
+            Enable Notifications
+          </ThemedText>
+        </Pressable>
+      );
+    }
+
+    if (notifStatus === 'denied') {
+      return (
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            { backgroundColor: theme.text },
+            pressed && { opacity: 0.8 },
+          ]}
+          onPress={openNotifSettings}
+        >
+          <ThemedText type="default" style={{ color: theme.background, fontWeight: '600' }}>
+            Open Settings for Notifications
+          </ThemedText>
+        </Pressable>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            HomeSafe
-          </ThemedText>
-          <ThemedText type="default" style={styles.subtitle}>
-            Logged in as {user?.email ?? 'User'}
-          </ThemedText>
-
-          <View style={styles.permissionCard}>
-            <ThemedText type="subtitle" style={styles.cardTitle}>
-              Location Permission
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <ThemedView style={styles.heroSection}>
+            <AnimatedIcon />
+            <ThemedText type="title" style={styles.title}>
+              HomeSafe
             </ThemedText>
-            {renderPermissionStatus()}
-            {renderPermissionButtons()}
-          </View>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              { backgroundColor: theme.backgroundElement, marginTop: Spacing.one },
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() => router.push('/safe-location')}
-          >
-            <ThemedText type="default" style={{ color: theme.text, fontWeight: '600' }}>
-              Manage Safe Location
+            <ThemedText type="default" style={styles.subtitle}>
+              Logged in as {user?.email ?? 'User'}
             </ThemedText>
-          </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              { backgroundColor: theme.backgroundElement, marginTop: Spacing.one },
-              pressed && { opacity: 0.8 },
-            ]}
-            onPress={() => router.push('/family-link')}
-          >
-            <ThemedText type="default" style={{ color: theme.text, fontWeight: '600' }}>
-              Link Family Member
-            </ThemedText>
-          </Pressable>
+            <View style={styles.permissionCard}>
+              <ThemedText type="subtitle" style={styles.cardTitle}>
+                Location Permission
+              </ThemedText>
+              {renderPermissionStatus()}
+              {renderPermissionButtons()}
+            </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.signOutButton,
-              { backgroundColor: theme.backgroundElement },
-              pressed && { opacity: 0.7 },
-            ]}
-            onPress={() => signOut()}
-            disabled={authLoading}
-          >
-            <ThemedText type="smallBold" style={{ color: '#FF3B30' }}>
-              Sign Out
-            </ThemedText>
-          </Pressable>
-        </ThemedView>
+            <View style={styles.permissionCard}>
+              <ThemedText type="subtitle" style={styles.cardTitle}>
+                Notification Permission
+              </ThemedText>
+              {renderNotificationStatus()}
+              {renderNotificationButtons()}
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                { backgroundColor: theme.backgroundElement, marginTop: Spacing.one },
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => router.push('/safe-location')}
+            >
+              <ThemedText type="default" style={{ color: theme.text, fontWeight: '600' }}>
+                Manage Safe Location
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                { backgroundColor: theme.backgroundElement, marginTop: Spacing.one },
+                pressed && { opacity: 0.8 },
+              ]}
+              onPress={() => router.push('/family-link')}
+            >
+              <ThemedText type="default" style={{ color: theme.text, fontWeight: '600' }}>
+                Link Family Member
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.signOutButton,
+                { backgroundColor: theme.backgroundElement },
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={() => signOut()}
+              disabled={authLoading}
+            >
+              <ThemedText type="smallBold" style={{ color: '#FF3B30' }}>
+                Sign Out
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+        </ScrollView>
       </SafeAreaView>
     </ThemedView>
   );
@@ -222,17 +331,19 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    gap: Spacing.three,
     paddingBottom: BottomTabInset + Spacing.three,
     maxWidth: MaxContentWidth,
+  },
+  scrollContent: {
+    paddingVertical: Spacing.two,
+    width: '100%',
+    alignItems: 'center',
   },
   heroSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
     width: '100%',
+    gap: Spacing.three,
   },
   title: {
     textAlign: 'center',
@@ -242,7 +353,7 @@ const styles = StyleSheet.create({
   },
   permissionCard: {
     width: '100%',
-    marginVertical: Spacing.two,
+    marginVertical: Spacing.one,
     gap: Spacing.two,
   },
   cardTitle: {
