@@ -63,8 +63,20 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
           setFcmToken(token);
           await saveTokenToFirestore(token, uid);
         }
-      } catch (tokenErr) {
-        console.warn('FCM token registration/retrieval warning:', tokenErr);
+      } catch (tokenErr: any) {
+        // iOS push reception requires a paid Apple Developer Program account (aps-environment entitlement unavailable on free Personal Team builds); revisit if a future user links two iOS devices needing reception on both.
+        const errMessage = tokenErr?.message || String(tokenErr);
+        const isEntitlementError =
+          Platform.OS === 'ios' &&
+          (errMessage.includes('aps-environment') ||
+            errMessage.includes('entitlement') ||
+            tokenErr?.code === 'messaging/unknown');
+
+        if (isEntitlementError) {
+          console.log('FCM token unavailable — this build lacks push notification entitlements');
+        } else {
+          console.warn('FCM token registration/retrieval warning:', tokenErr);
+        }
       }
     },
     [saveTokenToFirestore]
