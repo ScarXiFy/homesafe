@@ -47,3 +47,4 @@ example
 
 GoogleService-Info.plist
 google-services.json
+*-firebase-adminsdk-*.json

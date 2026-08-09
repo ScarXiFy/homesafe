@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, PermissionsAndroid, Platform } from 'react-native';
+import { Alert, Linking, PermissionsAndroid, Platform } from 'react-native';
 import {
   getMessaging,
   requestPermission,
   hasPermission,
   getToken,
   onTokenRefresh,
+  onMessage,
   registerDeviceForRemoteMessages,
   isDeviceRegisteredForRemoteMessages,
   AuthorizationStatus,
@@ -55,7 +56,7 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
   const fetchAndSaveFcmToken = useCallback(
     async (messagingInstance: any, uid: string) => {
       try {
-        if (!isDeviceRegisteredForRemoteMessages(messagingInstance)) {
+        if (Platform.OS !== 'ios' && !isDeviceRegisteredForRemoteMessages(messagingInstance)) {
           await registerDeviceForRemoteMessages(messagingInstance);
         }
         const token = await getToken(messagingInstance);
@@ -70,7 +71,9 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
           Platform.OS === 'ios' &&
           (errMessage.includes('aps-environment') ||
             errMessage.includes('entitlement') ||
-            tokenErr?.code === 'messaging/unknown');
+            errMessage.includes('unregistered') ||
+            tokenErr?.code === 'messaging/unknown' ||
+            tokenErr?.code === 'messaging/unregistered');
 
         if (isEntitlementError) {
           console.log('FCM token unavailable — this build lacks push notification entitlements');
@@ -195,7 +198,17 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
 
     fetchAndSaveFcmToken(messaging, user.uid);
 
-    const unsubscribe = onTokenRefresh(messaging, async (newToken: string) => {
+    const unsubscribeOnMessage = onMessage(messaging, async (remoteMessage) => {
+      console.log('[FCM Foreground Message Received]', remoteMessage);
+      if (remoteMessage.notification) {
+        Alert.alert(
+          remoteMessage.notification.title || 'HomeSafe Alert',
+          remoteMessage.notification.body || ''
+        );
+      }
+    });
+
+    const unsubscribeTokenRefresh = onTokenRefresh(messaging, async (newToken: string) => {
       setFcmToken(newToken);
       if (user?.uid) {
         await saveTokenToFirestore(newToken, user.uid);
@@ -203,7 +216,8 @@ export function useNotificationPermission(): UseNotificationPermissionResult {
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeOnMessage();
+      unsubscribeTokenRefresh();
     };
   }, [user?.uid, status, fetchAndSaveFcmToken, saveTokenToFirestore]);
 
