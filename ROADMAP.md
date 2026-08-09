@@ -14,10 +14,10 @@ Ordered checklist. Each item should be a separate PR into `main` from
       current-position save + Apple Maps preview, Firestore-backed
 - [x] Geofence registration via `expo-task-manager`, background arrival
       detection (100m radius, tuned via testing)
-- [ ] Bidirectional family linking (MVP: one linked contact) — either
+- [x] Bidirectional family linking (MVP: one linked contact) — either
       linked person can be notified when the other arrives. No fixed
       Parent/Member roles; the link itself is symmetric.
-- [ ] Push notification sent via FCM on confirmed arrival — target device
+- [x] Push notification sent via FCM on confirmed arrival — target device
       may be iOS or Android (Enrico's parent uses Android), so notification
       delivery must be verified on both platforms, not iOS-only
 - [ ] End-to-end testing: real-device background arrival detection,
