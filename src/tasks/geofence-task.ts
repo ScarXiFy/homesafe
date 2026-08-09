@@ -4,7 +4,7 @@ import { getAuth } from '@react-native-firebase/auth';
 import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 
 export const GEOFENCE_TASK_NAME = 'HOME_SAFE_GEOFENCE_TASK';
-export const GEOFENCE_RADIUS_METERS = 100;
+export const GEOFENCE_RADIUS_METERS = 50;
 
 interface GeofenceTaskData {
   eventType: Location.GeofencingEventType;
