@@ -1,3 +1,4 @@
+import '@/tasks/geofence-task';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View, useColorScheme } from 'react-native';
 import { DarkTheme, DefaultTheme, Slot, ThemeProvider, useRouter, useSegments } from 'expo-router';
@@ -37,7 +38,7 @@ export default function RootLayout() {
     if (!user && !inAuthGroup) {
       router.replace('/(auth)/sign-in');
     } else if (user && inAuthGroup) {
-      router.replace('/(app)');
+      router.replace('/(app)/(tabs)');
     }
   }, [user, initialized, segments, router]);
 

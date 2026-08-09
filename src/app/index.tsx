@@ -8,7 +8,7 @@ export default function Index() {
   if (!initialized) return null;
 
   if (user) {
-    return <Redirect href="/(app)" />;
+    return <Redirect href="/(app)/(tabs)" />;
   }
 
   return <Redirect href="/(auth)/sign-in" />;
